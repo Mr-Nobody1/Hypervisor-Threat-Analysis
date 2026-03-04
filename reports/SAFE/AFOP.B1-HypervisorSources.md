@@ -110,6 +110,45 @@
 | `pdbex` | PDB type extractor | No | Unknown | CLEAN — standard tool |
 | `zydis` | Zydis x86/x86-64 disassembler | No | Unknown | CLEAN — largest dependency, standard disassembler library |
 
+### Binary inspection supplement (DLL/LIB artifacts)
+
+**Method:** Existing offline output generated via `reports/SAFE/afop_binary_inspect.ps1` and stored in `reports/SAFE/binary_outputs/afop_binary_inspection_report.{json,csv}`.
+
+**Scope covered:**
+- Total binaries inspected: **26**
+  - **8 DLL** files (`libraries/DIA/*`, `libraries/pdbex/*`)
+  - **18 LIB** files (`libraries/kdserial/*`, `libraries/keystone/*`, `libraries/zydis/*`)
+
+**Checks performed:**
+- SHA-256 hashing per file (all 26 artifacts)
+- `strings` extraction (ASCII printable) with per-artifact output files
+- YARA execution attempt with status tracking
+- PE analysis (machine type, sections, export table, debug directory, security directory)
+- COFF archive (`.lib`) structure analysis (member count, archive symbol table presence)
+- Authenticode signature validation where applicable
+- Symbol/debug indicators (`PE` export/debug directories, archive symbol table, adjacent `.pdb` presence)
+
+**Results summary:**
+- **Authenticode:** 8/8 DLLs = `Valid` and signed by Microsoft; all 18 LIBs report `UnknownError` (expected for static archives).
+- **PE/ELF format:** 8 DLLs identified as `PE` (x64: `0x8664`, x86: `0x014C`); no ELF binaries in this dependency set.
+- **Export/symbol validation (DLL):**
+  - `msdia140.dll` exports: 6 (`DllCanUnloadNow`, `DllGetClassObject`, etc.)
+  - `symsrv.dll` exports: 34–36 (`SymbolServer*`, `http*`) depending on build path (`DIA` vs `pdbex` copies)
+  - Debug directories and security directories present for all DLLs.
+- **Archive symbol validation (LIB):** 18/18 archives contain symbol tables (`LibHasArchiveSymbolTable=True`); total parsed archive members: **312** (min 4, max 86).
+- **PDB adjacency indicator:** 4 files show adjacent `.pdb` (all Zydis libs under `libraries/zydis/{kernel,user}`).
+- **String scan:** completed for all 26 binaries; no flagged keyword hits in report output.
+- **YARA:** all files marked `skipped-tool-missing` (no local YARA executable present at analysis time).
+
+**Representative SHA-256 values (from generated report):**
+- `libraries/DIA/x64/msdia140.dll` → `0D5D0BF5BA51C3CF0E1C1489C5D09E6452609ECB836F956058E049DCDE13A72D`
+- `libraries/DIA/x64/symsrv.dll` → `FEA493309D3D5640DF85F4B5523EA0091D4705780DF5CA471A75CBA9F0BAC232`
+- `libraries/pdbex/x64/msdia140.dll` → `F86BAD471B1153CAC543A164F44A504687B2B2F5862A25108AB824443F2C5D0B`
+- `libraries/keystone/release-lib/keystone.lib` → `1C5EE00952EB96C50E2B5904ACD8C30CB2AD098595A282F3D52971FBEFC2EDFF`
+- `libraries/zydis/user/Zydis.lib` → `8ACF8E19DF2C5AD5BBEDC7242CEE3D3A76094F2A8175EC977A11511A7111DC83`
+
+**Binary-inspection verdict:** CLEAN for expected dependency artifacts. No evidence of embedded malicious payload indicators in inspected prebuilt DLL/LIB files; YARA outcome is inconclusive due to missing tool/rules in the analysis environment.
+
 ---
 
 ## Phase 3 — Static Source Code Analysis

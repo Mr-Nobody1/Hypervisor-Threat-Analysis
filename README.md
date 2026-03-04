@@ -11,6 +11,7 @@ This project is for **educational and security research purposes only.**
 We do not distribute, link to, or endorse any software analyzed here.  
 All analysis is performed on publicly circulating source code using static and dynamic analysis techniques.  
 We are not affiliated with any forum, developer, or software vendor.
+The author is not responsible for any damage, loss, or legal consequences resulting from the use of this code. Use at your own risk.
 
 ---
 
@@ -53,8 +54,16 @@ We are not affiliated with any forum, developer, or software vendor.
 - Scan for obfuscated payloads, shellcode arrays, and encoded blobs
 - VM-exit handler review — all exit reason cases verified as legitimate
 - Architecture verification — all suspicious hypervisor behaviors justified
+- Prebuilt DLL/LIB binary inspection (`reports/SAFE/afop_binary_inspect.ps1`) with SHA-256, signature checks, strings extraction, PE/COFF metadata parsing, and symbol/debug indicator validation
 
-**Findings:** No malicious, suspicious, or dangerous code patterns detected. Source code is consistent with a legitimate open-source hypervisor/debugger project. Codebase matches expected structure for HyperDbg and SimpleSvm derivatives.
+**Binary inspection summary (existing generated output):**
+- 26 binaries analyzed (8 DLL + 18 LIB)
+- DLL signatures: 8/8 `Valid` (Microsoft signed)
+- LIB archive symbols: 18/18 contain archive symbol table
+- Strings scan completed for all binaries; no flagged keyword hits
+- YARA status: skipped in this environment (`tool missing`)
+
+**Findings:** No malicious, suspicious, or dangerous code patterns detected. Source code is consistent with a legitimate open-source hypervisor/debugger project. Codebase matches expected structure for HyperDbg and SimpleSvm derivatives. Binary artifact inspection aligns with expected third-party dependency profile.
 
 ---
 
