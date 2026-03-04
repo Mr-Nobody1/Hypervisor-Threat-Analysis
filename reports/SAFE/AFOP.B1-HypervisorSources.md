@@ -8,7 +8,6 @@
 | **SHA-256** | *(not recomputed — original archive no longer available for hashing)* |
 | **Unpacked Size** | ~1,530 files |
 | **Date Analyzed** | 2026-03-04 |
-| **Analyst** | Antigravity |
 | **Verdict** | ✅ SAFE |
 
 ---
