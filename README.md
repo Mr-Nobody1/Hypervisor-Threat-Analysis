@@ -1,6 +1,6 @@
 # 🛡️ Hypervisor Source Safety Database
 
-> Community-driven malware analysis of hypervisor sources circulating on hacking forums.  
+> Community-driven malware analysis of hypervisor and game-cheat sources circulating on hacking forums.  
 > **Goal:** Help users verify if source code they downloaded is safe before running or compiling it.
 
 ---
@@ -16,9 +16,9 @@ We are not affiliated with any forum, developer, or software vendor.
 
 ## 📊 Safety Database
 
-| Source Name | Version / Build | Verdict | Date Analyzed | Notes |
+| Source Name | Version / Build | Verdict | Date Analyzed | Report |
 |---|---|---|---|---|
-| AFOP.B1-HypervisorSources | B1 (2/25/2026) | ✅ SAFE | 2026-02-28 | No malicious indicators found. See report below. |
+| AFOP.B1-HypervisorSources | B1 (2/25/2026) | ✅ SAFE | 2026-02-28 | [Full Report](reports/SAFE/AFOP.B1-HypervisorSources.md) |
 
 ---
 
@@ -32,22 +32,27 @@ We are not affiliated with any forum, developer, or software vendor.
 | **Unpacked Size** | ~89.7 MB |
 | **Date Analyzed** | February 28, 2026 |
 | **Verdict** | ✅ **SAFE** |
-| **Analyst** | Antigravity |
+| **Analyst** | Claude, Codex |
 
 **Contents analyzed:**
 - `HypervisorIntelSource/` — HyperDbg-based Intel hypervisor source
 - `HypervisorAMDSource/` — SimpleSvm-based AMD hypervisor source
 
-**Checks performed:**
-- Static code analysis (all source files)
-- Build script review (`CMakeLists.txt`, `.clang-format`)
-- Dependency audit (`/dependencies`, `/libraries`)
-- Scan for hardcoded IPs, C2 callbacks, obfuscated payloads
+**Checks performed (Phase 0–8 Audit):**
+- Static code analysis — all source files scanned (10 detection categories)
+- Build script & supply chain review (`CMakeLists.txt`, `.vcxproj`, `.ps1`)
+- Pre-compiled binary audit (`.obj`, `.lib` files verified against upstream Zydis/Zycore)
+- Dependency integrity verification (Zydis, Keystone, ia32-doc, pdbex)
+- Code provenance — matched against upstream HyperDbg and SimpleSvm repositories
 - Scan for rootkit patterns (SSDT hooks, DKOM, hidden driver installation)
+- Scan for hypervisor-specific threats (EPT weaponization, VMCALL backdoors, MSR abuse)
+- Scan for process injection APIs (`CreateRemoteThread`, `VirtualAllocEx`, `WriteProcessMemory`)
+- Scan for credential harvesting and keylogger routines
 - Scan for persistence mechanisms (registry run keys, scheduled tasks, service install)
 - Scan for data exfiltration (network calls, file system reads of sensitive paths)
-- Scan for credential harvesting or keylogger routines
-- Scan for embedded binary blobs or shellcode in source
+- Scan for obfuscated payloads, shellcode arrays, and encoded blobs
+- VM-exit handler review — all exit reason cases verified as legitimate
+- Architecture verification — all suspicious hypervisor behaviors justified
 
 **Findings:** No malicious, suspicious, or dangerous code patterns detected. Source code is consistent with a legitimate open-source hypervisor/debugger project. Codebase matches expected structure for HyperDbg and SimpleSvm derivatives.
 
@@ -61,16 +66,50 @@ We are not affiliated with any forum, developer, or software vendor.
 
 ## 🔬 Analysis Methodology
 
-All sources are analyzed using the following approach:
+All sources are analyzed using a **comprehensive 8-phase audit framework**. See the full methodology: **[methodology.md](methodology.md)**
 
-1. **Static analysis** — Full review of all source files for malicious patterns
-2. **Build script audit** — Check for scripts that download or execute external content
-3. **Dependency check** — Review third-party libraries for known malicious code
-4. **Indicator scan** — Search for hardcoded IPs, URLs, obfuscated strings, shellcode
-5. **Rootkit pattern scan** — Check for kernel hooks, DKOM, privilege escalation, persistence
-6. **Network behavior review** — Identify any unexpected outbound communication logic
+### Audit Phases:
 
-Tools used: Ghidra, x64dbg, Wireshark (dynamic), manual code review (static)
+| Phase | Name | Description |
+|---|---|---|
+| 0 | **Initial Triage** | Archive hashing, file inventory, binary artifact count, git history check |
+| 1 | **Code Provenance** | Upstream identification, recursive diff against known projects, deviation mapping |
+| 2 | **Build System & Supply Chain** | Build script audit, pre-compiled binary verification, dependency integrity |
+| 3 | **Static Source Code Analysis** | 10-category automated pattern scan + manual deep review of critical functions |
+| 4 | **Assembly Review** | Targeted review of `.asm` files for shellcode, raw syscalls, self-modifying code |
+| 5 | **Resource & Data Audit** | `.rc`, `.inf`, `.reg`, `.dat`, `.bin` file inspection and entropy analysis |
+| 6 | **Dynamic Analysis** | Sandboxed execution with Procmon, Wireshark, and WinDbg monitoring |
+| 7 | **Architecture Verification** | Legitimacy assessment of inherently suspicious hypervisor behaviors |
+| 8 | **Final Verdict** | 10-question checklist determining SAFE / SUSPICIOUS / DANGEROUS rating |
+
+### Detection Categories (Phase 3):
+
+| ID | Category | Severity |
+|---|---|---|
+| A | Process Injection APIs | CRITICAL |
+| B | Credential Harvesting & Keylogging | CRITICAL |
+| C | Rootkit / Kernel Hooks | HIGH |
+| D | Hypervisor-Specific Threats (MSR, EPT, VMCALL) | HIGH |
+| E | Interrupt & Exception Hijacking | HIGH |
+| F | Anti-Analysis / Evasion | MEDIUM |
+| G | Networking & Exfiltration | MEDIUM |
+| H | Privilege Escalation | MEDIUM |
+| I | Persistence Mechanisms | MEDIUM |
+| J | Obfuscation & Encoded Payloads | HIGH |
+
+### Tools used:
+`ripgrep`, `Ghidra`, `x64dbg`, `WinDbg`, `Wireshark`, `Procmon`, `strings`, `7-Zip`, manual code review, PowerShell automated scanning
+
+---
+
+## 📝 How to Analyze a New Source
+
+1. **Download and extract** the source archive in an isolated environment.
+2. **Copy** [`reports/TEMPLATE.md`](reports/TEMPLATE.md) to `reports/SAFE/` or `reports/DANGEROUS/` with a descriptive filename.
+3. **Follow the 8-phase methodology** in [`methodology.md`](methodology.md), filling in each section of the template.
+4. **Determine the verdict** using the Phase 8 checklist.
+5. **Add an entry** to the Safety Database table in this README.
+6. **Commit and push** the report.
 
 ---
 
@@ -89,13 +128,15 @@ Found a source you want analyzed? Open an issue with:
 
 ```
 /
-├── README.md          ← This file (main safety database)
+├── README.md              ← This file (main safety database)
+├── methodology.md         ← Full 8-phase analysis methodology
 ├── reports/
+│   ├── TEMPLATE.md        ← Report template for new analyses
 │   ├── SAFE/
-│   │   └── AFOP.B1-HypervisorSources.md   ← Detailed report
+│   │   └── AFOP.B1-HypervisorSources.md
 │   └── DANGEROUS/
 │       └── (none yet)
-└── methodology.md     ← Full analysis methodology
+└── [SOURCE_FOLDERS]/      ← Extracted source code under analysis
 ```
 
 ---
